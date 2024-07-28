@@ -5,173 +5,173 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
-public class Main {
+public class YT_to_MP3 {
     private static final String YT_DLP_EXE = "yt-dlp.exe";
     private static final String FFMPEG_EXE = "ffmpeg.exe";
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Usage: java -jar YouTubeDownloader.jar <YouTube URL>");
+            System.err.println("Uso: java -jar YT_to_MP3.jar <URL de YouTube>");
             System.exit(1);
         }
 
         String url = args[0];
 
-        if (!validateURL(url)) {
-            System.err.println("Invalid YouTube URL");
+        if (!validarURL(url)) {
+            System.err.println("URL de YouTube no válida");
             System.exit(1);
         }
 
         try {
-            String basePath = getBasePath();
-            String ytDlpPath = Paths.get(basePath, YT_DLP_EXE).toString();
-            String ffmpegPath = Paths.get(basePath, FFMPEG_EXE).toString();
+            String rutaBase = obtenerRutaBase();
+            String rutaYtDlp = Paths.get(rutaBase, YT_DLP_EXE).toString();
+            String rutaFfmpeg = Paths.get(rutaBase, FFMPEG_EXE).toString();
 
-            if (!new File(ytDlpPath).exists() || !new File(ffmpegPath).exists()) {
-                throw new IOException("yt-dlp.exe or ffmpeg.exe not found in base directory.");
+            if (!new File(rutaYtDlp).exists() || !new File(rutaFfmpeg).exists()) {
+                throw new IOException("yt-dlp.exe o ffmpeg.exe no encontrados en el directorio base.");
             }
 
             // Crear carpetas /temp y /musica si no existen
-            String tempDir = Paths.get(basePath, "temp").toString();
-            String musicDir = Paths.get(basePath, "musica").toString();
-            createDirectoryIfNotExists(tempDir);
-            createDirectoryIfNotExists(musicDir);
+            String dirTemporal = Paths.get(rutaBase, "temp").toString();
+            String dirMusica = Paths.get(rutaBase, "musica").toString();
+            crearDirectorioSiNoExiste(dirTemporal);
+            crearDirectorioSiNoExiste(dirMusica);
 
             // Limpiar archivos temporales antiguos
-            cleanDirectory(tempDir);
+            limpiarDirectorio(dirTemporal);
 
-            checkYtDlpVersion(ytDlpPath);
+            comprobarVersionYtDlp(rutaYtDlp);
 
-            String videoTitle = getVideoTitle(url, ytDlpPath);
+            String tituloVideo = obtenerTituloVideo(url, rutaYtDlp);
 
-            String videoFilePath = downloadVideo(url, ytDlpPath, tempDir);
+            String rutaArchivoVideo = descargarVideo(url, rutaYtDlp, dirTemporal);
 
-            convertToMp3(videoFilePath, videoTitle, ffmpegPath, musicDir);
+            convertirAMp3(rutaArchivoVideo, tituloVideo, rutaFfmpeg, dirMusica);
 
-            System.out.println("Terminado, ahora modo sexo!");
+            System.out.println("¡Terminado, ahora modo sexo!");
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("An error occurred: " + e.getMessage());
+            System.err.println("Ocurrió un error: " + e.getMessage());
             System.exit(1);
         }
     }
 
-    private static boolean validateURL(String url) {
+    private static boolean validarURL(String url) {
         System.out.println("Validando URL");
         return url.startsWith("https://www.youtube.com/") || url.startsWith("https://youtu.be/");
     }
 
-    private static String getBasePath() throws URISyntaxException {
-        File jarFile = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        String basePath = jarFile.getParentFile().getAbsolutePath();
+    private static String obtenerRutaBase() throws URISyntaxException {
+        File archivoJar = new File(YT_to_MP3.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        String rutaBase = archivoJar.getParentFile().getAbsolutePath();
 
-        if (basePath.endsWith("bin")) {
-            basePath = Paths.get(basePath, "..", "src").normalize().toString();
+        if (rutaBase.endsWith("bin")) {
+            rutaBase = Paths.get(rutaBase, "..", "src").normalize().toString();
         }
 
-        return basePath;
+        return rutaBase;
     }
 
-    private static void checkYtDlpVersion(String ytDlpPath) throws IOException, InterruptedException {
-        ProcessBuilder builder = new ProcessBuilder(ytDlpPath, "--version");
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
+    private static void comprobarVersionYtDlp(String rutaYtDlp) throws IOException, InterruptedException {
+        ProcessBuilder constructor = new ProcessBuilder(rutaYtDlp, "--version");
+        constructor.redirectErrorStream(true);
+        Process proceso = constructor.start();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String version = reader.readLine();
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new IOException("Failed to check yt-dlp version. Exit code: " + exitCode);
+        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+        String version = lector.readLine();
+        int codigoSalida = proceso.waitFor();
+        if (codigoSalida != 0) {
+            throw new IOException("Falló la comprobación de la versión de yt-dlp. Código de salida: " + codigoSalida);
         }
-        System.out.println("yt-dlp version: " + version);
+        System.out.println("Versión de yt-dlp: " + version);
     }
 
-    private static String getVideoTitle(String url, String ytDlpPath) throws IOException, InterruptedException {
-        System.out.println("Obteniendo titulo (Importante recordarlo)");
-        ProcessBuilder builder = new ProcessBuilder(ytDlpPath, "--get-title", url);
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
+    private static String obtenerTituloVideo(String url, String rutaYtDlp) throws IOException, InterruptedException {
+        System.out.println("Obteniendo título (Importante recordarlo)");
+        ProcessBuilder constructor = new ProcessBuilder(rutaYtDlp, "--get-title", url);
+        constructor.redirectErrorStream(true);
+        Process proceso = constructor.start();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String title = reader.readLine().replace(" ", "_").replaceAll("[^a-zA-Z0-9_\\-]", "");
+        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+        String titulo = lector.readLine().replace(" ", "_").replaceAll("[^a-zA-Z0-9_\\-]", "");
 
-        process.waitFor();
-        return title;
+        proceso.waitFor();
+        return titulo;
     }
 
-    private static String downloadVideo(String url, String ytDlpPath, String tempDir) throws IOException, InterruptedException {
-        System.out.println("Descargando video(en webm que asco)");
-        ProcessBuilder builder = new ProcessBuilder(ytDlpPath, url, "-o", Paths.get(tempDir, "video.%(ext)s").toString());
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
+    private static String descargarVideo(String url, String rutaYtDlp, String dirTemporal) throws IOException, InterruptedException {
+        System.out.println("Descargando video (en webm que asco)");
+        ProcessBuilder constructor = new ProcessBuilder(rutaYtDlp, url, "-o", Paths.get(dirTemporal, "video.%(ext)s").toString());
+        constructor.redirectErrorStream(true);
+        Process proceso = constructor.start();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
+        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+        String linea;
+        while ((linea = lector.readLine()) != null) {
+            System.out.println(linea);
         }
 
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            StringBuilder errorOutput = new StringBuilder();
-            try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    errorOutput.append(errorLine).append("\n");
+        int codigoSalida = proceso.waitFor();
+        if (codigoSalida != 0) {
+            StringBuilder salidaError = new StringBuilder();
+            try (BufferedReader lectorError = new BufferedReader(new InputStreamReader(proceso.getErrorStream()))) {
+                String lineaError;
+                while ((lineaError = lectorError.readLine()) != null) {
+                    salidaError.append(lineaError).append("\n");
                 }
             }
-            throw new IOException("Failed to download video. Exit code: " + exitCode + "\nError output:\n" + errorOutput.toString());
+            throw new IOException("Falló la descarga del video. Código de salida: " + codigoSalida + "\nSalida de error:\n" + salidaError.toString());
         }
 
-        return getDownloadedVideoPath(tempDir);
+        return obtenerRutaArchivoDescargado(dirTemporal);
     }
 
-    private static String getDownloadedVideoPath(String tempDir) {
-        File dir = new File(tempDir);
-        for (File file : dir.listFiles()) {
-            if (file.getName().startsWith("video.") && (file.getName().endsWith(".mp4") || file.getName().endsWith(".webm"))) {
-                return file.getAbsolutePath();
+    private static String obtenerRutaArchivoDescargado(String dirTemporal) {
+        File dir = new File(dirTemporal);
+        for (File archivo : dir.listFiles()) {
+            if (archivo.getName().startsWith("video.") && (archivo.getName().endsWith(".mp4") || archivo.getName().endsWith(".webm"))) {
+                return archivo.getAbsolutePath();
             }
         }
         return null;
     }
 
-    private static void convertToMp3(String videoFilePath, String title, String ffmpegPath, String musicDir) throws IOException, InterruptedException {
+    private static void convertirAMp3(String rutaArchivoVideo, String titulo, String rutaFfmpeg, String dirMusica) throws IOException, InterruptedException {
         System.out.println("Convirtiendo a mp3 (Carita fachera)");
-        if (videoFilePath == null) {
-            throw new IOException("Downloaded video file not found.");
+        if (rutaArchivoVideo == null) {
+            throw new IOException("No se encontró el archivo de video descargado.");
         }
 
-        ProcessBuilder builder = new ProcessBuilder(ffmpegPath, "-i", videoFilePath, Paths.get(musicDir, title + ".mp3").toString());
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
+        ProcessBuilder constructor = new ProcessBuilder(rutaFfmpeg, "-i", rutaArchivoVideo, Paths.get(dirMusica, titulo + ".mp3").toString());
+        constructor.redirectErrorStream(true);
+        Process proceso = constructor.start();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
+        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
+        String linea;
+        while ((linea = lector.readLine()) != null) {
+            System.out.println(linea);
         }
 
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new IOException("Failed to convert video to mp3. Exit code: " + exitCode);
+        int codigoSalida = proceso.waitFor();
+        if (codigoSalida != 0) {
+            throw new IOException("Falló la conversión del video a mp3. Código de salida: " + codigoSalida);
         }
 
-        new File(videoFilePath).delete();
+        new File(rutaArchivoVideo).delete();
     }
 
-    private static void createDirectoryIfNotExists(String dirPath) {
+    private static void crearDirectorioSiNoExiste(String dirPath) {
         File dir = new File(dirPath);
         if (!dir.exists()) {
             dir.mkdirs();
         }
     }
 
-    private static void cleanDirectory(String dirPath) {
+    private static void limpiarDirectorio(String dirPath) {
         File dir = new File(dirPath);
-        for (File file : dir.listFiles()) {
-            if (file.isFile()) {
-                file.delete();
+        for (File archivo : dir.listFiles()) {
+            if (archivo.isFile()) {
+                archivo.delete();
             }
         }
     }
