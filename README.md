@@ -8,7 +8,7 @@ Only required yt-dlp.exe and ffmpeg.exe in the same directory:
 
 https://ffmpeg.org/download.html#build-windows
 
-https://github.com/yt-dlp/yt-dlp/releases (Only el yt-dlp.exe
+https://github.com/yt-dlp/yt-dlp/releases (Only yt-dlp.exe)
 
 
 Also added a jar to automatice the proccess with URLs in a txt with one link per line
