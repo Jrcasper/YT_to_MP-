@@ -6,12 +6,13 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
 public class YT_to_MP3 {
+
     private static final String YT_DLP_EXE = "yt-dlp.exe";
     private static final String FFMPEG_EXE = "ffmpeg.exe";
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Uso: java -jar YT_to_MP3.jar <URL de YouTube>");
+            System.err.println("Uso: java -jar DescargadorYouTube.jar <URL de YouTube>");
             System.exit(1);
         }
 
@@ -43,6 +44,14 @@ public class YT_to_MP3 {
             comprobarVersionYtDlp(rutaYtDlp);
 
             String tituloVideo = obtenerTituloVideo(url, rutaYtDlp);
+
+            // Verificar si el archivo MP3 ya existe
+            String rutaArchivoMp3 = Paths.get(dirMusica, tituloVideo + ".mp3").toString();
+            File archivoMp3 = new File(rutaArchivoMp3);
+            if (archivoMp3.exists()) {
+                System.out.println("El archivo MP3 ya existe: " + rutaArchivoMp3);
+                return; // Salir si el archivo ya existe
+            }
 
             String rutaArchivoVideo = descargarVideo(url, rutaYtDlp, dirTemporal);
 
@@ -92,11 +101,27 @@ public class YT_to_MP3 {
         constructor.redirectErrorStream(true);
         Process proceso = constructor.start();
 
-        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream()));
-        String titulo = lector.readLine().replace(" ", "_").replaceAll("[^a-zA-Z0-9_\\-]", "");
+        BufferedReader lector = new BufferedReader(new InputStreamReader(proceso.getInputStream(), "UTF-8"));
+        String linea;
+        String titulo = null;
 
-        proceso.waitFor();
-        return titulo;
+        System.out.println("Salida de yt-dlp al obtener el título:");
+        while ((linea = lector.readLine()) != null) {
+            System.out.println(linea);  // Mostrar cada línea para diagnóstico
+            if (!linea.contains("WARNING") && !linea.trim().isEmpty()) {
+                titulo = linea;
+            }
+        }
+
+        int estado = proceso.waitFor();
+        if (estado != 0 || titulo == null) {
+            throw new IOException("Error: Se detectó un problema al obtener el título del video. Código de salida: " + estado);
+        }
+
+        // Reemplazar caracteres no válidos para nombres de archivo con "_"
+        String tituloLimpio = titulo.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+
+        return tituloLimpio;
     }
 
     private static String descargarVideo(String url, String rutaYtDlp, String dirTemporal) throws IOException, InterruptedException {
@@ -129,7 +154,7 @@ public class YT_to_MP3 {
     private static String obtenerRutaArchivoDescargado(String dirTemporal) {
         File dir = new File(dirTemporal);
         for (File archivo : dir.listFiles()) {
-            if (archivo.getName().startsWith("video.") && (archivo.getName().endsWith(".mp4") || archivo.getName().endsWith(".webm"))) {
+            if (archivo.getName().startsWith("video.") && (archivo.getName().endsWith(".mp4") || archivo.getName().endsWith(".webm") || archivo.getName().endsWith(".mkv"))) {
                 return archivo.getAbsolutePath();
             }
         }
@@ -142,7 +167,14 @@ public class YT_to_MP3 {
             throw new IOException("No se encontró el archivo de video descargado.");
         }
 
-        ProcessBuilder constructor = new ProcessBuilder(rutaFfmpeg, "-i", rutaArchivoVideo, Paths.get(dirMusica, titulo + ".mp3").toString());
+        String rutaMp3 = Paths.get(dirMusica, titulo + ".mp3").toString();
+        File archivoMp3 = new File(rutaMp3);
+        if (archivoMp3.exists()) {
+            System.out.println("El archivo MP3 ya existe: " + rutaMp3);
+            return; // Salir si el archivo MP3 ya existe
+        }
+
+        ProcessBuilder constructor = new ProcessBuilder(rutaFfmpeg, "-i", rutaArchivoVideo, rutaMp3);
         constructor.redirectErrorStream(true);
         Process proceso = constructor.start();
 
