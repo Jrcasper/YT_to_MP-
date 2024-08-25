@@ -2,7 +2,7 @@
 ONLY WORKS WITH INDIVIDUAL LINKS.
 
 Just DOWNLOAD and run: https://drive.google.com/file/d/18Vx1yZZgbndYqq41CMuWILosawVqjVmY/view?usp=sharing
-(Use UI.java to run)
+(Use UI_YTMP3.java to run)
 
 Easy app to download YT videos and convert to MP3 fast with UI or with cmd with YT_to_MP3.java
 
